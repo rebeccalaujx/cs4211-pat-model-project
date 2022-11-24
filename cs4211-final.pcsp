@@ -1,0 +1,247 @@
+enum{killerThree, triplets};
+enum{ta, tb, na};
+
+var turn = na;
+var killer3_score = 0;
+var triplets_score = 0;
+var won = na;
+var ball = 0;
+// ball positions: 0 = OOB, 1 = free throw zone, 2 = 2ptr zone, 3 = 3ptr zone, 4 = 4ptr zone, 5 = in hoop, 6 = anywhere on court (for timeouts)
+
+TieBreakGame = WhoStartFirst; (TAStarts [] TBStarts);
+
+WhoStartFirst = []i:{killerThree, triplets}@ Shootout{turn = i} -> Skip;
+TAStarts = [won == na && turn == killerThree]TAReady -> TAReadyToShoot;
+TBStarts = [won == na && turn == triplets]TBReady -> TBReadyToShoot;
+ChangeInPossession = TAStarts [] TBStarts [] ([won != na] GameOver -> Skip);
+
+TAReadyToShoot = pcase {                             
+	17: TwoPointer{ball= 2} -> TA_Two_Pointer_Options  
+	8: ThreePointer{ball =3} -> TA_Three_Pointer_Options
+	0: FourPointer{ball=4} -> TA_Four_Pointer_Options
+}; 
+TBReadyToShoot = pcase {
+	23: TwoPointer{ball= 2} -> TB_Two_Pointer_Options
+	9: ThreePointer{ball =3} -> TB_Three_Pointer_Options
+	0: FourPointer{ball=4} -> TB_Four_Pointer_Options
+}; 
+
+// Team A 2 Pointers
+TA_Two_Pointer_Options = ifa (turn == killerThree) {
+pcase {
+	7: JumpShot { ball = 2} -> TA_Two_Pointer_Jumpshot
+	0: HookShot { ball = 2} -> TA_Two_Pointer_Hookshot
+    4: BankShot { ball = 2} -> TA_Two_Pointer_Bankshot
+	3: LayUp {ball = 2} -> TA_Two_Pointer_Layup
+	2: Dunk {ball = 2} -> TA_Two_Pointer_Dunk
+    0: Tipin {ball = 2} -> TA_Two_Pointer_Tipin
+    0: Timeout { ball = 6} -> ChangeInPossession
+}};
+
+TA_Two_Pointer_Jumpshot = pcase {                             
+    8: Success {ball= 5} -> {killer3_score=killer3_score+2; if (killer3_score >= 50) {won = ta} 
+                                                     else { turn = (turn+1)%2} }-> ChangeInPossession
+    1: OffensiveRebound{ball =2} -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+    0: DefensiveRebound{ball = 2} -> TAReadyToShoot
+    0: Miss { ball = 0 } -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+};
+
+TA_Two_Pointer_Hookshot = pcase {                             
+    1: Success {ball= 5} -> {killer3_score=killer3_score+2; if (killer3_score >= 50) {won = ta} 
+                                                     else { turn = (turn+1)%2} }-> ChangeInPossession
+    0: OffensiveRebound{ball =2} -> Swap{ turn = (turn+1)%2; } -> ChangeInPossession
+    0: DefensiveRebound{ball = 2} -> TAReadyToShoot
+    0: Miss { ball = 0 } -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+};
+
+TA_Two_Pointer_Bankshot = pcase {                             
+    4: Success {ball= 5} -> {killer3_score=killer3_score+2; if (killer3_score >= 50) {won = ta} 
+                                                     else { turn = (turn+1)%2} }-> ChangeInPossession
+    0: OffensiveRebound{ball =2} -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+    0: DefensiveRebound{ball = 2} -> TAReadyToShoot
+    0: Miss { ball = 0 } -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+};
+
+TA_Two_Pointer_Layup = pcase {
+    3: Success {ball= 5} -> {killer3_score=killer3_score+2; if (killer3_score >= 50) {won = ta} 
+                                                     else { turn = (turn+1)%2} }-> ChangeInPossession
+    1: OffensiveRebound{ball =2} -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+    0: DefensiveRebound{ball = 2} -> TAReadyToShoot
+    0: Miss { ball = 0 } -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+}; 	
+
+TA_Two_Pointer_Dunk = pcase {                             
+    2: Success {ball= 5} -> {killer3_score=killer3_score+2; if (killer3_score >= 50) {won = ta} 
+                                                     else { turn = (turn+1)%2} }-> ChangeInPossession
+    0: OffensiveRebound{ball =2} -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+    0: DefensiveRebound{ball = 2} -> TAReadyToShoot
+    0: Miss { ball = 0 } -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+};
+
+TA_Two_Pointer_Tipin = pcase {                             
+    0: Success {ball= 5} -> {killer3_score=killer3_score+2; if (killer3_score >= 50) {won = ta} 
+                                                     else { turn = (turn+1)%2} }-> ChangeInPossession
+    0: OffensiveRebound{ball =2} -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+    0: DefensiveRebound{ball = 2} -> TAReadyToShoot
+    0: Miss { ball = 0 } -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+};
+
+// Team A 3 pointers
+TA_Three_Pointer_Options = ifa (turn == killerThree) {  
+	pcase {
+		8: JumpShot { ball = 3} -> TA_Three_Pointer_Jumpshot
+		1: BankShot { ball = 3} -> TA_Three_Pointer_Bankshot
+		0: Timeout { ball = 6} -> ChangeInPossession
+}};
+
+TA_Three_Pointer_Jumpshot = pcase {                             
+    2: Success {ball= 5} -> {killer3_score=killer3_score+3; if (killer3_score >= 50) {won = ta} 
+                                                     else { turn = (turn+1)%2} }-> ChangeInPossession
+    3: OffensiveRebound{ball =2} -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+    3: DefensiveRebound{ball = 2} -> TAReadyToShoot
+    0: Miss { ball = 0 } -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+}; 
+
+TA_Three_Pointer_Bankshot = pcase {                             
+    0: Success {ball= 5} -> {killer3_score=killer3_score+3; if (killer3_score >= 50) {won = ta} 
+                                                     else { turn = (turn+1)%2} }-> ChangeInPossession
+    0: OffensiveRebound{ball = 2} -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+    0: DefensiveRebound{ball = 2} -> TAReadyToShoot
+    0: Miss { ball = 0 } -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+}; 
+
+// Team A 4 pointers
+TA_Four_Pointer_Options = ifa (turn == killerThree) {  
+	pcase {
+		0: JumpShot { ball = 4} -> TA_Four_Pointer_Jumpshot
+		0: BankShot { ball = 4} -> TA_Four_Pointer_Bankshot
+		0: Timeout { ball = 6} -> ChangeInPossession
+}};
+
+TA_Four_Pointer_Jumpshot = pcase {                             
+    0: Success {ball= 5} -> {killer3_score=killer3_score+4; if (killer3_score >= 50) {won = ta} 
+                                                     else { turn = (turn+1)%2} }-> ChangeInPossession
+    0: OffensiveRebound{ball =2} -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+    0: DefensiveRebound{ball = 2} -> TAReadyToShoot
+    0: Miss { ball = 0 } -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+};
+
+TA_Four_Pointer_Bankshot = pcase {                             
+    0: Success {ball= 5} -> {killer3_score=killer3_score+4; if (killer3_score >= 50) {won = ta} 
+                                                     else { turn = (turn+1)%2} }-> ChangeInPossession
+    0: OffensiveRebound{ball = 2} -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+    0: DefensiveRebound{ball = 2} -> TAReadyToShoot
+    0: Miss { ball = 0 } -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+};
+
+// Team B 2 Pointers
+TB_Two_Pointer_Options = ifa (turn == triplets) {
+	pcase {
+		12: JumpShot { ball = 2} -> TB_Two_Pointer_Jumpshot
+		1: HookShot { ball = 2} -> TB_Two_Pointer_Hookshot
+	    5: BankShot { ball = 2} -> TB_Two_Pointer_Bankshot
+		5: LayUp {ball = 2} -> TB_Two_Pointer_Layup
+		0: Dunk {ball = 2} -> TB_Two_Pointer_Dunk
+		0: Tipin {ball = 2} -> TB_Two_Pointer_Tipin
+	    1: Timeout { ball = 6} -> ChangeInPossession
+}};
+
+
+TB_Two_Pointer_Jumpshot = pcase {                             
+    7: Success {ball= 5} -> {triplets_score=triplets_score+2; if (triplets_score >= 50) {won = tb} 
+                                                     else { turn = (turn+1)%2} }-> ChangeInPossession
+    3: OffensiveRebound{ball =2} -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+    2: DefensiveRebound{ball = 2} -> TBReadyToShoot
+    0: Miss { ball = 0 } -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+}; 
+
+TB_Two_Pointer_Hookshot = pcase {                             
+    1: Success {ball= 5} -> {triplets_score=triplets_score+2; if (triplets_score >= 50) {won = tb} 
+                                                     else { turn = (turn+1)%2} }-> ChangeInPossession
+    0: OffensiveRebound{ball =2} -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+    0: DefensiveRebound{ball = 2} -> TBReadyToShoot
+    0: Miss { ball = 0 } -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+}; 
+
+TB_Two_Pointer_Bankshot = pcase {                             
+    1: Success {ball= 5} -> {triplets_score=triplets_score+2; if (triplets_score >= 50) {won = tb} 
+                                                     else { turn = (turn+1)%2} }-> ChangeInPossession
+    2: OffensiveRebound{ball =2} -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+    2: DefensiveRebound{ball = 2} -> TBReadyToShoot
+    0: Miss { ball = 0 } -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+};
+
+TB_Two_Pointer_Layup = pcase {                             
+    5: Success {ball= 5} -> {triplets_score=triplets_score+2; if (triplets_score >= 50) {won = tb} 
+                                                     else { turn = (turn+1)%2} }-> ChangeInPossession
+    0: OffensiveRebound{ball =2} -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+    0: DefensiveRebound{ball = 2} -> TBReadyToShoot
+    0: Miss { ball = 0 } -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+}; 	
+
+TB_Two_Pointer_Dunk = pcase {                             
+    0: Success {ball= 5} -> {triplets_score=triplets_score+2; if (triplets_score >= 50) {won = tb} 
+                                                     else { turn = (turn+1)%2} }-> ChangeInPossession
+    0: OffensiveRebound{ball =2} -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+    0: DefensiveRebound{ball = 2} -> TBReadyToShoot
+    0: Miss { ball = 0 } -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+}; 	
+
+TB_Two_Pointer_Tipin = pcase {                             
+    0: Success {ball= 5} -> {triplets_score=triplets_score+2; if (triplets_score >= 50) {won = tb} 
+                                                     else { turn = (turn+1)%2} }-> ChangeInPossession
+    0: OffensiveRebound{ball =2} -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+    0: DefensiveRebound{ball = 2} -> TBReadyToShoot
+    0: Miss { ball = 0 } -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+}; 	
+
+// Team B 3 pointers
+TB_Three_Pointer_Options = ifa (turn == triplets) {  
+	pcase {
+		9: JumpShot { ball = 3 } -> TB_Three_Pointer_Jumpshot
+		0: BankShot { ball = 3 } -> TB_Three_Pointer_Bankshot
+	    0: Timeout { ball = 6} -> ChangeInPossession
+}};
+
+TB_Three_Pointer_Jumpshot = pcase {                             
+    5: Success {ball= 5} -> {triplets_score=triplets_score+3; if (triplets_score >= 50) {won = tb} 
+                                                     else { turn = (turn+1)%2} }-> ChangeInPossession
+    1: OffensiveRebound{ball = 2} -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+    3: DefensiveRebound{ball = 2} -> TBReadyToShoot
+    0: Miss { ball = 0 } -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+}; 
+
+TB_Three_Pointer_Bankshot = pcase {                             
+    0: Success {ball= 5} -> {triplets_score=triplets_score+3; if (triplets_score >= 50) {won = tb} 
+                                                     else { turn = (turn+1)%2} }-> ChangeInPossession
+    0: OffensiveRebound{ball =2} -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+    0: DefensiveRebound{ball = 2} -> TBReadyToShoot
+    0: Miss { ball = 0 } -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+};
+
+// Team A 4 pointers
+TB_Four_Pointer_Options = ifa (turn == killerThree) {  
+	pcase {
+		0: JumpShot { ball = 3} -> TB_Four_Pointer_Jumpshot
+		0: BankShot { ball = 3} -> TB_Four_Pointer_Bankshot
+		0: Timeout { ball = 6} -> ChangeInPossession
+}};
+
+TB_Four_Pointer_Jumpshot = pcase {                             
+    0: Success {ball= 5} -> {killer3_score=killer3_score+4; if (killer3_score >= 50) {won = tb} 
+                                                     else { turn = (turn+1)%2} }-> ChangeInPossession
+    0: OffensiveRebound{ball =2} -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+    0: DefensiveRebound{ball = 2} -> TBReadyToShoot
+    0: Miss { ball = 0 } -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+}; 
+
+TB_Four_Pointer_Bankshot = pcase {                             
+    0: Success {ball= 5} -> {killer3_score=killer3_score+4; if (killer3_score >= 50) {won = tb} 
+                                                     else { turn = (turn+1)%2} }-> ChangeInPossession
+    0: OffensiveRebound{ball = 2} -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+    0: DefensiveRebound{ball = 2} -> TBReadyToShoot
+    0: Miss { ball = 0 } -> Swap{ turn = (turn+1)%2} -> ChangeInPossession
+};
+
+#define taWin won == ta;
+#assert TieBreakGame reaches taWin with prob;
